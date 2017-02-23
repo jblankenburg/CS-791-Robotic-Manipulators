@@ -37,22 +37,24 @@
 ## to the 'chatter' topic
 
 import rospy
+import sys
+import getopt
+import numpy as np
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker 
 from geometry_msgs.msg import Point
 from sensor_msgs.msg import JointState
 from myRobot import MyRobot
-import numpy as np
 
 def talker(data = []):
 
     print(data)
     pub = rospy.Publisher("visualization_marker", Marker, queue_size=10)
-    # rospy.init_node('talker', anonymous=True)
-    # rate = rospy.Rate(10) # 10hz
 
     # bot1 = MyRobot("/home/janelle/catkin_manip/src/project1/scripts/two_link_planar.json")
-    bot = MyRobot("/home/janelle/catkin_manip/src/CS-791-Robotic-Manipulators/project1/scripts/DLR_manipulator.json")
+    # bot = MyRobot("/home/janelle/catkin_manip/src/CS-791-Robotic-Manipulators/project1/scripts/DLR_manipulator.json")
+    bot_file = rospy.get_param("bot_file")
+    bot = MyRobot(bot_file)
     pub_robot(bot, pub, data)
 
     # while not rospy.is_shutdown():
@@ -188,12 +190,35 @@ def pub_line_strip(pnts, pub, idx):
 
 # ---------------------------------------------------------------------------------
 
+#  usage:    -b <bot_file.json>
 if __name__ == '__main__':
+
+    argv = sys.argv[1:]
+
+    bot_file = ''
+    try:
+        opts, args = getopt.getopt(argv,"hb:",["bot_file="])
+    except getopt.GetoptError:
+        print 'robot_pub_sub.py -b <bot_file>'
+        sys.exit(2)
+    if opts:
+        for opt, arg in opts:
+            if opt == '-h':
+                print 'robot_pub_sub.py -b <bot_file.json>'
+                sys.exit()
+            elif opt in ("-b", "--bot_file"):
+                bot_file = arg
+                print( 'Bot file is: {}'.format(bot_file))
+    else:
+        print 'No bot file provided.\n Try robot_pub_sub.py -h for help.\n  Exiting.'
+        sys.exit(2)
+
     rospy.init_node('myRobot', anonymous=True)
     # try:
     #     talker()
     # except rospy.ROSInterruptException:
     #     pass
+    rospy.set_param('bot_file', bot_file)
     talker()
     listener()
     rospy.spin()

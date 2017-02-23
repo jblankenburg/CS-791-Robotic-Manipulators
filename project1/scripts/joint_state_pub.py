@@ -37,6 +37,8 @@
 ## to the 'chatter' topic
 
 import rospy
+import sys
+import getopt
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker 
 from geometry_msgs.msg import Point
@@ -44,7 +46,7 @@ from sensor_msgs.msg import JointState
 from myRobot import MyRobot
 import numpy as np
 
-def joint_st():
+def joint_st(num_joints):
     pub = rospy.Publisher("joint_state", JointState, queue_size=10)
     rospy.init_node('joint_st', anonymous=True)
     rate = rospy.Rate(1) # 1hz
@@ -57,24 +59,67 @@ def joint_st():
         joint.header.frame_id = '/map'
         joint.header.stamp = rospy.Time.now()
 
-        joint_names = ['joint_1','joint_2','joint_3','joint_4','joint_5','joint_6','joint_7']
-        joint.name = joint_names
-        joint.position = [1.0*np.random.rand(1,1), 
-                            1.0*np.random.rand(1,1),
-                            1.0*np.random.rand(1,1),
-                            1.0*np.random.rand(1,1),
-                            1.0*np.random.rand(1,1),
-                            1.0*np.random.rand(1,1),
-                            1.0*np.random.rand(1,1)] 
+        names = set_joint_names(num_joints)
+        positions = set_joint_positions(num_joints)
+        joint.name = names
+        joint.position = positions
 
         rospy.loginfo(joint)
         pub.publish(joint)
 
         rate.sleep()
 
+
+
+# ------------------------------------------
+
+def set_joint_names(num_joints):
+
+    names = []
+    for i in range(1,num_joints+1):
+        name = 'joint_{}'.format(i)
+        names.extend([name])
+    print'\n\n'
+    print names
+    return names
+
+def set_joint_positions(num_joints):
+    positions = []
+    for i in range(1,num_joints+1):
+        position = 1.0*np.random.rand(1,1)
+        positions.extend(position)
+    print positions
+    return positions
+
+# ------------------------------------------
+
+
 if __name__ == '__main__':
+
+    argv = sys.argv[1:]
+
+    num_joints = 7
     try:
-        joint_st()
+        opts, args = getopt.getopt(argv,"hn:",["num_joints="])
+    except getopt.GetoptError:
+        print 'joint_state_pub.py -n <num_joints (int)>'
+        print '\t Try -h for help'
+        sys.exit(2)
+    if opts:
+        for opt, arg in opts:
+            if opt == '-h':
+                print 'joint_state_pub.py -n <num_joints (int)> \n------ Where n is num joints to publish states for\n\t should match num states in bot_file.json passed to robot_pub_sub.py'
+                print '\t   IF NOT PROVIDED: Default = 7'
+                sys.exit()
+            elif opt in ("-n", "--num_joints"):
+                num_joints = int(arg)
+                print( 'Will publish joint states for {} joints!'.format(num_joints))
+    else:
+        print 'No number of joints provided. Default = 7.'
+
+
+    try:
+        joint_st(num_joints)
     except rospy.ROSInterruptException:
         pass
 
