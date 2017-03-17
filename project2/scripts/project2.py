@@ -51,24 +51,6 @@ from std_msgs.msg import String
 from traj_msgs.msg import TrajectoryCommand
 from sensor_msgs.msg import JointState
 
-# def vel_test():
-#     jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
-#     rospy.init_node('vel_test')
-#     rate = rospy.Rate(1000)
-#     i = 0
-#     while not rospy.is_shutdown():
-#       jointCmd = JointCommand()
-#       jointCmd.mode = JointCommand.TORQUE_MODE
-#       jointCmd.names.append('right_s1')
-#       if i < 4000:
-#         vel = i / 1000.0
-#         jointCmd.command.append( vel )
-#       else:
-#         jointCmd.command.append(0.0)
-#       i = i+1
-#       jointCmdPub.publish(jointCmd)
-#       rospy.loginfo("%s",jointCmd)
-#       rate.sleep()
 
 CONST_FLAG = 0
 TRAJ_COM = None
@@ -105,8 +87,9 @@ def joint_callback(data):
       CONST_FLAG = 1;
 
     # output joint angles
-    setJointAngles(TRAJ_COM.t_k);
+    setJointAngles(TRAJ_COM.time, TRAJ_COM.t_k);
 
+# write a listener for the given command message
 def listener():
 
     # In ROS, nodes are uniquely named. If two nodes with the same
@@ -117,10 +100,8 @@ def listener():
     rospy.init_node('listener', anonymous=True)
 
     # subscribe to the trajectory command topic for time and joints and q's
-    rospy.loginfo("THIS!!!!")
-    rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback)
+    # rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback)
     rospy.Subscriber("/robot/joint_states", JointState, joint_callback)
-
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
@@ -169,16 +150,17 @@ def computeConstants( q_s, q_s_dot, q_f, q_f_dot, t_dur):
     x = np.linalg.solve(a,b)
     a_2[i] = float(x[0])
     a_3[i] = float(x[1])
-    # print(a)
-    # print(b)
-    # print(x)
-    # print(np.allclose(np.dot(a,x), b))
+    print(a)
+    print(b)
+    print(np.allclose(np.dot(a,x), b))
 
-  # print('\n\n\n')
-  # print(t)
-  # print(len(q_s))
-  # print(a_0.tolist())
-  # print('\n\n\n')
+  print('\n\n\n')
+  print("a's:")
+  print(a_0.tolist())
+  print(a_1.tolist())
+  print(a_2.tolist())
+  print(a_3.tolist())
+  print('\n\n\n')
 
   rospy.set_param("a_0", a_0.tolist())
   rospy.set_param("a_1", a_1.tolist())
@@ -187,17 +169,17 @@ def computeConstants( q_s, q_s_dot, q_f, q_f_dot, t_dur):
 
 
 # correctly output the joint angles at each time step
-def setJointAngles(t_dur):
+def setJointAngles(t_pubed, t_dur):
 
-  t = t_dur.data.secs
+  # t = t_dur.data.secs
+  t_now = rospy.Time.now()
+  t = float((t_now.nsecs - t_pubed.nsecs))/np.power(10,9)
 
   # get params
   a_0 = rospy.get_param("a_0")
   a_1 = rospy.get_param("a_1")
   a_2 = rospy.get_param("a_2")
   a_3 = rospy.get_param("a_3")
-
-  print(len(a_0))
 
   q_f = np.zeros(len(a_0))
   q_f_dot = np.zeros(len(a_0))
@@ -213,29 +195,30 @@ def setJointAngles(t_dur):
     q_f_dot[i] = a_1[i][0] + 2*a_2[i][0]*t + 3*a_3[i][0]*t*t
 
     print('\n\n\n')
-    rospy.loginfo(q_f)
-    # print(q_f_dot)
+    rospy.loginfo("Set Joint Angles!!!!")
+    print(t)
+    print(q_f_dot)
     print('\n\n\n')
-    vel_test(q_f)
+    vel_test(q_f_dot)
 
 
-def vel_test(q_f):
+def vel_test(q_f_dot):
     jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
     # rospy.init_node('vel_test')
-    rate = rospy.Rate(1000)
+    rate = rospy.Rate(10)
     i = 0
     while not rospy.is_shutdown():
       jointCmd = JointCommand()
       jointCmd.mode = JointCommand.VELOCITY_MODE
 
-      for i in range(len(q_f)):
+      for i in range(len(q_f_dot)):
         jointCmd.names.append(TRAJ_COM.names[i])
-        jointCmd.command.append(q_f[i])
+        jointCmd.command.append(q_f_dot[i])
 
       # TrajectoryComamnd. = Duration
       jointCmdPub.publish(jointCmd)
       rospy.loginfo("%s",jointCmd)
-      rospy.loginfo(q_f)
+      rospy.loginfo(q_f_dot)
       rate.sleep()
 
 
