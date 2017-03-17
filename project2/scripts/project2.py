@@ -42,6 +42,7 @@ import numpy as np
 import random
 import copy
 import baxter_interface
+import message_filters
 
 import rospy
 from math import sin, cos, pi
@@ -51,7 +52,7 @@ from std_msgs.msg import String
 from traj_msgs.msg import TrajectoryCommand
 from sensor_msgs.msg import JointState
 
-
+STOP_FLAG = 0
 CONST_FLAG = 0
 TRAJ_COM = None
 JOINT_COM = None
@@ -79,8 +80,8 @@ def joint_callback(data):
         if data.name[ind] == name:
           q_s.append(data.position[ind]) 
           q_s_dot.append(data.velocity[ind])
-    # print(q_s)
-    # print(q_s_dot)
+    print(q_s)
+    print(q_s_dot)
 
     if CONST_FLAG == 0:
       computeConstants(q_s, q_s_dot, TRAJ_COM.q_final, TRAJ_COM.qdot_final, TRAJ_COM.t_k) # based on joint pub dave gave us, it stops after 4000
@@ -88,6 +89,38 @@ def joint_callback(data):
 
     # output joint angles
     setJointAngles(TRAJ_COM.time, TRAJ_COM.t_k);
+
+# def callback(traj_data, joint_data):
+#     global TRAJ_COM
+#     global CONST_FLAG
+#     global TRAJ_COM
+
+#     rospy.loginfo("traj callback!!!!")
+#     TRAJ_COM = traj_data 
+
+#     rospy.loginfo("Joint callback!!!!")
+#     JOINT_COM = joint_data
+
+#     # rospy.loginfo(rospy.get_caller_id() + "I heard %s", data)
+#     # print(data.command[0])
+#     # computeConstants(data.command[0], int(t))
+#     q_s = []
+#     q_s_dot = []
+#     for name in TRAJ_COM.names:
+#       for ind in range(len(JOINT_COM.name)):
+#         if JOINT_COM.name[ind] == name:
+#           q_s.append(JOINT_COM.position[ind]) 
+#           q_s_dot.append(JOINT_COM.velocity[ind])
+#     # print(q_s)
+#     # print(q_s_dot)
+
+#     if CONST_FLAG == 0:
+#       computeConstants(q_s, q_s_dot, TRAJ_COM.q_final, TRAJ_COM.qdot_final, TRAJ_COM.t_k) # based on joint pub dave gave us, it stops after 4000
+#       CONST_FLAG = 1;
+
+#     # output joint angles
+#     setJointAngles(TRAJ_COM.time, TRAJ_COM.t_k);
+
 
 # write a listener for the given command message
 def listener():
@@ -100,8 +133,14 @@ def listener():
     rospy.init_node('listener', anonymous=True)
 
     # subscribe to the trajectory command topic for time and joints and q's
-    # rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback)
+    # traj_sub = message_filters.Subscriber("/trajectory_command", TrajectoryCommand)
+    # joint_sub = message_filters.Subscriber("/robot/joint_states", JointState)
+    # ts = message_filters.TimeSynchronizer([traj_sub, joint_sub],10)
+    # ts.registerCallback(callback)
+
+    rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback)
     rospy.Subscriber("/robot/joint_states", JointState, joint_callback)
+
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
@@ -199,26 +238,68 @@ def setJointAngles(t_pubed, t_dur):
     print(t)
     print(q_f_dot)
     print('\n\n\n')
-    vel_test(q_f_dot)
+    vel_test(q_f_dot, t_dur, t)
 
 
-def vel_test(q_f_dot):
+def vel_test(q_f_dot, t_dur, t_spent):
+    global CONST_FLAG
+    global STOP_FLAG
+
+
     jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
     # rospy.init_node('vel_test')
-    rate = rospy.Rate(10)
+    rate_val = 100
+    rate = rospy.Rate(rate_val)
     i = 0
-    while not rospy.is_shutdown():
+
+    print("\n\n\n")
+    print(t_dur)
+    print(t_spent)
+    t_dur_sec = float(t_dur.data.secs) + float(t_dur.data.nsecs)/np.power(10,9)
+    t = float(t_spent)    
+    print("----------------")
+    print(t_dur_sec)
+    print(t_spent)
+    print(t)
+    print("\n\n\n")
+
+    STOP_FLAG = 0
+    while not rospy.is_shutdown() and not STOP_FLAG:
       jointCmd = JointCommand()
       jointCmd.mode = JointCommand.VELOCITY_MODE
 
-      for i in range(len(q_f_dot)):
-        jointCmd.names.append(TRAJ_COM.names[i])
-        jointCmd.command.append(q_f_dot[i])
+      # print("\n\n\n")
+      # print(t_dur)
+      # print(t_spent)
+      # t_dur_sec = float(t_dur.data.secs) + float(t_dur.data.nsecs)/np.power(10,9)
+      # t = float((t_dur_sec - t_spent))    
+      # print("----------------")
+      # print(t_dur_sec)
+      # print(t_spent)
+      # print(t)
+      # print(t + (1/rate_val)
+      # print("\n\n\n")
+      t = float(t) + (1.0/rate_val)
+      # print(t)
+
+      # publish vels until we are past the duration we set
+      if t < t_dur_sec:
+        for i in range(len(q_f_dot)):
+          jointCmd.names.append(TRAJ_COM.names[i])
+          jointCmd.command.append(q_f_dot[i])
+      else: 
+        STOP_FLAG = 1
+        CONST_FLAG = 0;
+
+        for i in range(len(q_f_dot)):
+          jointCmd.names.append(TRAJ_COM.names[i])
+          jointCmd.command.append(0)
+        rospy.loginfo("STOP FLAG WAS SET, DURATION WAS UP!")
 
       # TrajectoryComamnd. = Duration
       jointCmdPub.publish(jointCmd)
-      rospy.loginfo("%s",jointCmd)
-      rospy.loginfo(q_f_dot)
+      # rospy.loginfo("%s",jointCmd)
+      # rospy.loginfo(q_f_dot)
       rate.sleep()
 
 

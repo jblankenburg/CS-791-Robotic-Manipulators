@@ -16,8 +16,8 @@ def trajPub():
         # TrajectoryComamnd. = Duration
         trajCom = TrajectoryCommand()
         trajCom.time = rospy.Time.now()
-        trajCom.t_k.data = rospy.Time(1)
-        trajCom.t_k_prime.data = rospy.Time(1)
+        trajCom.t_k.data = rospy.Time(4)
+        trajCom.t_k_prime.data = rospy.Time(4)
         # trajCom.names.append('right_s0')
         # trajCom.names.append('right_s1')
         # trajCom.names.append('right_e0')
