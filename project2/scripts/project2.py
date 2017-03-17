@@ -199,7 +199,7 @@ def computeConstants( q_s, q_s_dot, q_f, q_f_dot, t_dur):
   print(a_1.tolist())
   print(a_2.tolist())
   print(a_3.tolist())
-  print('\n')
+  print('\n\n')
 
   rospy.set_param("a_0", a_0.tolist())
   rospy.set_param("a_1", a_1.tolist())
