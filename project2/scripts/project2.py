@@ -70,7 +70,7 @@ def joint_callback(data):
     JOINT_COM = data
     rospy.loginfo("Joint callback!!!!")
 
-    # rospy.loginfo(rospy.get_caller_id() + "I heard %s", data)
+    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data)
     # print(data.command[0])
     # computeConstants(data.command[0], int(t))
     q_s = []
@@ -137,9 +137,9 @@ def listener():
     # joint_sub = message_filters.Subscriber("/robot/joint_states", JointState)
     # ts = message_filters.TimeSynchronizer([traj_sub, joint_sub],10)
     # ts.registerCallback(callback)
+    rospy.Subscriber("/robot/joint_states", JointState, joint_callback, queue_size=1)
 
-    rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback)
-    rospy.Subscriber("/robot/joint_states", JointState, joint_callback)
+    rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback, queue_size=1)
 
 
     # spin() simply keeps python from exiting until this node is stopped
@@ -193,13 +193,13 @@ def computeConstants( q_s, q_s_dot, q_f, q_f_dot, t_dur):
     print(b)
     print(np.allclose(np.dot(a,x), b))
 
-  print('\n\n\n')
+  print('\n')
   print("a's:")
   print(a_0.tolist())
   print(a_1.tolist())
   print(a_2.tolist())
   print(a_3.tolist())
-  print('\n\n\n')
+  print('\n')
 
   rospy.set_param("a_0", a_0.tolist())
   rospy.set_param("a_1", a_1.tolist())
@@ -233,18 +233,17 @@ def setJointAngles(t_pubed, t_dur):
     q_f[i] = a_0[i][0] + a_1[i][0]*t + a_2[i][0]*t*t + a_3[i][0]*t*t*t
     q_f_dot[i] = a_1[i][0] + 2*a_2[i][0]*t + 3*a_3[i][0]*t*t
 
-    print('\n\n\n')
-    rospy.loginfo("Set Joint Angles!!!!")
-    print(t)
-    print(q_f_dot)
-    print('\n\n\n')
-    vel_test(q_f_dot, t_dur, t)
+  print('\n')
+  rospy.loginfo("Set Joint Angles!!!!")
+  print(t)
+  print(q_f_dot)
+  print('\n')
+  vel_test(q_f_dot, t_dur, t)
 
 
 def vel_test(q_f_dot, t_dur, t_spent):
     global CONST_FLAG
     global STOP_FLAG
-
 
     jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
     # rospy.init_node('vel_test')
@@ -252,7 +251,7 @@ def vel_test(q_f_dot, t_dur, t_spent):
     rate = rospy.Rate(rate_val)
     i = 0
 
-    print("\n\n\n")
+    print("\n")
     print(t_dur)
     print(t_spent)
     t_dur_sec = float(t_dur.data.secs) + float(t_dur.data.nsecs)/np.power(10,9)
@@ -261,7 +260,7 @@ def vel_test(q_f_dot, t_dur, t_spent):
     print(t_dur_sec)
     print(t_spent)
     print(t)
-    print("\n\n\n")
+    print("\n")
 
     STOP_FLAG = 0
     while not rospy.is_shutdown() and not STOP_FLAG:
