@@ -55,8 +55,14 @@ def vel_test():
     i = 0
     while not rospy.is_shutdown():
       jointCmd = JointCommand()
-      jointCmd.mode = JointCommand.TORQUE_MODE
+      jointCmd.mode = JointCommand.VELOCITY_MODE
+      jointCmd.names.append('right_s0')
       jointCmd.names.append('right_s1')
+      jointCmd.names.append('right_e0')
+      jointCmd.names.append('right_e1')
+      jointCmd.names.append('right_w0')
+      jointCmd.names.append('right_w1')
+      jointCmd.names.append('right_w2')
       if i < 4000:
       	vel = i / 1000.0
         jointCmd.command.append( vel )

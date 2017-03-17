@@ -1,5 +1,6 @@
 # time: time when command was issued
 time time
+
 # t_k: how long the trajectory should take
 std_msgs/Duration t_k
 
