@@ -36,8 +36,11 @@ def trajPub():
         trajCom.names.append('right_w0')
         trajCom.names.append('right_w1')
         trajCom.names.append('right_w2')
-        trajCom.q_final = [1, .6, -0.2, 0.5, -0.2, -1, 0]
+        # trajCom.q_final = [1, .6, -0.2, 0.5, -0.2, -1, 0]
+        # trajCom.qdot_final = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+        trajCom.q_final = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
         trajCom.qdot_final = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
         # trajCom.names.append('right_e1')
         # trajCom.q_final = [ 2.0 ]
         # trajCom.qdot_final = [ 0.01 ]
