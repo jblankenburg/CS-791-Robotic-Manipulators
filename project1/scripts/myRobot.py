@@ -52,8 +52,6 @@ class MyRobot:
             0,              0,                             0,                            1,
             ])
         A = A.reshape(4,4)
-        # print(A)
-
         return A
 
 
@@ -66,11 +64,6 @@ class MyRobot:
         # TODO: complete this function to get a transform from the
         #       ith frame to the jth frame and return it (hint: use constructA above)
         T = self.constructA(i)
-        # print(T)
-        # print(i)
-        # print(i+1)
-        # print(j)
-        
         for k in range(i+1,j):
             # print('K {}'.format(k))
             T = np.dot(T,self.constructA(k))
