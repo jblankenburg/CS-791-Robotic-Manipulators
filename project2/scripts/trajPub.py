@@ -7,7 +7,7 @@ from std_msgs.msg import Duration, Time
 def trajPub():
     pub = rospy.Publisher('/trajectory_command', TrajectoryCommand, queue_size=1)
     rospy.init_node('trajPub', anonymous=True)
-    rate = rospy.Rate(1) # 10hz
+    rate = rospy.Rate(100) # 10hz
     while not rospy.is_shutdown():
         # hello_str = "hello world %s" % rospy.get_time()
         # rospy.loginfo(hello_str)
@@ -40,6 +40,10 @@ def trajPub():
         # trajCom.qdot_final = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
         trajCom.q_final = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
         trajCom.qdot_final = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
+        # trajCom.q_final = [0, 0, 0, 0, 0, 0, 0]
+        # trajCom.qdot_final = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
 
         # trajCom.names.append('right_e1')
         # trajCom.q_final = [ 2.0 ]
