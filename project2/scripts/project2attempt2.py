@@ -72,7 +72,7 @@ def controlLoop():
 	jointSub = rospy.Subscriber("/robot/joint_states", JointState, joint_callback, queue_size=1)
 	trajSub = rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback, queue_size=1)
 	jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
-	truePub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
+	# truePub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
 
 	# wait for messages
 	while JOINT_STATE == None or TRAJ_CMD == None:
@@ -119,9 +119,10 @@ def controlLoop():
 			pubVels(q_f_dot, jointCmdPub)
 			rospy.loginfo('q_f_dot: %s', q_f_dot)
 
-			# verify the arm is in the right location?
-			pos_f = TRAJ_CMD.q_final
-			pubTruePos(pos_f, truePub)
+			# # verify the arm is in the right location? 
+			# NOTE: IF TOO FAR FROM LOC BECUASE NOT ENOUGH TIME, THEN WILL BREAK GAZEBO
+			# pos_f = TRAJ_CMD.q_final
+			# pubTruePos(pos_f, truePub)
 
 		# sleep
 		rate.sleep()
