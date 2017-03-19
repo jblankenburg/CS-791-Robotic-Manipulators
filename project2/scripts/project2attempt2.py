@@ -72,7 +72,7 @@ def controlLoop():
 	jointSub = rospy.Subscriber("/robot/joint_states", JointState, joint_callback, queue_size=1)
 	trajSub = rospy.Subscriber("/trajectory_command", TrajectoryCommand, traj_callback, queue_size=1)
 	jointCmdPub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
-	# truePub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
+	truePub = rospy.Publisher("/robot/limb/right/joint_command", JointCommand, queue_size = 100)
 
 	# wait for messages
 	while JOINT_STATE == None or TRAJ_CMD == None:
@@ -90,14 +90,6 @@ def controlLoop():
 
 	# while not shutdown
 	while not rospy.is_shutdown():
-		# # get joint state
-		# state = JOINT_STATE
-
-		# # get trajectory
-		# cmd = TRAJ_CMD
-
-		# # compute coeffs
-	    # [a0, a1, a2, a3] = computeConstants(Q_S, Q_S_DOT, TRAJ_CMD.q_final, TRAJ_CMD.qdot_final, TRAJ_CMD.t_k) 
 
 		# for time now until duration
 		# time = rospy.Time.now()
