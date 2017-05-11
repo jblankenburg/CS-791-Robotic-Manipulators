@@ -1,0 +1,6 @@
+  <launch>
+    ...
+    <node pkg="manipulators" type="fixed_tf_broadcaster.py"
+          name="broadcaster_fixed" />
+  </launch>
+  
