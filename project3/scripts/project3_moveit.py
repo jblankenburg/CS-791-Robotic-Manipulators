@@ -50,6 +50,7 @@ import tf
 from baxter_interface import Gripper
 import numpy as np
 import random
+from traj_msgs.msg import PieceMovement
 
 # set up robot class
 class BaxterMoveit:
@@ -82,66 +83,62 @@ class BaxterMoveit:
         print "============ STOPPING"
         moveit_commander.roscpp_shutdown()
 
+    def callback(self, data):
+        # rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+
+        move_from = data.move_from
+        move_to = data.move_to
+        
+        print "Moving piece from: {0}".format(move_from)
+        print "Moving pieve to:   {0}".format(move_to)
+        
+        move_to_square(self, move_from, move_to)
+
+    def listener(self):
+
+        # In ROS, nodes are uniquely named. If two nodes with the same
+        # node are launched, the previous one is kicked off. The
+        # anonymous=True flag means that rospy will choose a unique
+        # name for our 'listener' node so that multiple listeners can
+        # run simultaneously.
+        rospy.Subscriber("pieceMovement", PieceMovement, self.callback)
+
+        # spin() simply keeps python from exiting until this node is stopped
+        rospy.spin()
 
 
-def move_to_square(robot, label):
+def move_to_square(robot, label_from, label_to):
 
     # compute offset from label
-    offset = compute_label_offset(robot,label)
-    print(offset)
+    offset_f = compute_label_offset(robot,label_from)
+    # compute offset from label
+    offset_t = compute_label_offset(robot,label_to)
 
     now = rospy.Time(0)
     t = tf.TransformListener(True, rospy.Duration(10.0))
     # transform = tf.Transformer(True, rospy.Duration(10.0))
-    t.waitForTransform("/base", "/chessboard", now,rospy.Duration(3.0));
-    pose = t.lookupTransform("/base", "/chessboard", now)
+    t.waitForTransform("/base", "/checkerboard", now,rospy.Duration(3.0));
+    pose = t.lookupTransform("/base", "/checkerboard", now)
 
     print "The pose of the chessboard is: {0}".format(pose)
+    quat_t = [1, 0, 0, 0]
+    pose_t = [pose[0],quat_t]
+    print "reversed pose is {0}".format(quat_t)
 
-    pick_place(robot, pose, offset)    
-
-    # # set up pose goal
-    # pose_target = geometry_msgs.msg.Pose()
-    # # THIS POSE HAS THE SAME ORIENTATION AS THE CHESSBOARD BUT THE CHESSBOARD IS FACING UP SO I NEED TO GET THE REVERSE?!?!
-    # # ALSO NEED TO ADD OFFSETS TO POSITIONS OF PARTS OF CHESSBOARD TO FOUND X,Y
-    # # pose_target.orientation.x = pose[1][0]
-    # # pose_target.orientation.y = pose[1][1]
-    # # pose_target.orientation.z = pose[1][2]
-    # # pose_target.orientation.w = pose[1][3]
-    # # pose_target.position.x = pose[0][0] + offset[0]
-    # # pose_target.position.y = pose[0][1] + offset[1]
-    # # pose_target.position.z = pose[0][2]
-    # pose_target.orientation.x = 1
-    # pose_target.orientation.y = 0
-    # pose_target.orientation.z = 0
-    # pose_target.orientation.w = 0
-    # pose_target.position.x = 0.75 + offset[0]
-    # pose_target.position.y = 0 + offset[1]
-    # pose_target.position.z = 0
-
-    # robot.arm.set_pose_target(pose_target)
-    # robot.arm.set_num_planning_attempts(3);
-    # robot.arm.set_planning_time(5.0);
-    # robot.arm.set_goal_position_tolerance(0.01)
-    # robot.arm.set_goal_orientation_tolerance(0.01)
+    pick_place(robot, pose_t, offset_t, offset_f)    
 
 
-    # plan1 = robot.arm.plan()
-    # print "============ Waiting while RVIZ displays plan1..."
-    # rospy.sleep(10)
-    # print "============ Waiting while RVIZ executes plan1..."
-    # robot.arm.go(wait=True)
-    # rospy.sleep(10)
+def pick_place(robot, pose, offset_t, offset_f):
 
-
-def pick_place(robot, pose, offset):
 
     #--- Set pose goal for just above position of peice 
     pose_temp = ( (pose[0][0],pose[0][1],pose[0][2]+0.1), pose[1])
     print(pose_temp)
 
-    print("Moving to just above piece")
-    move_to_pose(robot, pose_temp, offset)
+    #------- PICK --------------------
+
+    print("Moving to just above piece to pick")
+    move_to_pose(robot, pose_temp, offset_f)
 
     #--- open gripper
     print("Opening gripper")
@@ -149,33 +146,42 @@ def pick_place(robot, pose, offset):
     rospy.sleep(1)
 
     #--- Set pose goal for exact piece
-    print("Moving to just exact loc of piece")
-    move_to_pose(robot, pose, offset)
+    print("Moving to just exact loc of piece to pick")
+    move_to_pose(robot, pose, offset_f)
 
     #--- close gripper
     print("Closing gripper")
     robot.left_gripper.close()
     rospy.sleep(1)
 
+    #--- Set pose goal for just above position of peice 
+    print("Moving to just above piece to pick")
+    move_to_pose(robot, pose_temp, offset_f)
+
+
+    #------- PLACE --------------------
+
+    print("Moving to just above loc to place")
+    move_to_pose(robot, pose_temp, offset_t)
+
+    #--- Set pose goal for exact piece
+    print("Moving to just exact loc to place piece")
+    move_to_pose(robot, pose, offset_t)
+
+    #--- open gripper
+    print("Opening gripper")
+    robot.left_gripper.open()
+    rospy.sleep(1)
 
     #--- Set pose goal for just above position of peice 
-    print("Moving to just above piece")
-    move_to_pose(robot, pose_temp, offset)
+    print("Moving to just above loc to place")
+    move_to_pose(robot, pose_temp, offset_t)
+
 
 
 def move_to_pose(robot, pose, offset):
     pose_target = geometry_msgs.msg.Pose()
 
-    # pose_target.orientation.x = 1
-    # pose_target.orientation.y = 0
-    # pose_target.orientation.z = 0
-    # pose_target.orientation.w = 0
-    # pose_target.position.x = 0.75 + offset[0]
-    # pose_target.position.y = 0 + offset[1]
-    # pose_target.position.z = 0
-
-    # want from to be opposite of gripper along x so mult pose quat w/ [1,0,0,0]
-    # ori = quaternion_multiply(pose[1], [1,0,0,0])
     pose_target.orientation.x = pose[1][0]
     pose_target.orientation.y = pose[1][1]
     pose_target.orientation.z = pose[1][2]
@@ -190,6 +196,10 @@ def move_to_pose(robot, pose, offset):
     robot.arm.set_goal_position_tolerance(0.01)
     robot.arm.set_goal_orientation_tolerance(0.01)
 
+    print("pose {0}".format(pose))
+    print("offset {0}".format(offset))
+    print("target pose {0}".format(pose_target))
+
     print("\tPlanning...")
     plan1 = robot.arm.plan()
     rospy.sleep(5)
@@ -201,51 +211,49 @@ def compute_label_offset(robot,label):
     # x_axis = ['a','b','c','d','e','f','g','h',]
     # y_axis = [1,2,3,4,5,6,7,8]
 
+    # .0625 is cell size
+    k = 0.0625/2
+    delta_k = 0.0625
+
     if label[0] == 'a':
-        x_pos = 0;
+        x_pos = 3*delta_k + k;
     if label[0] == 'b':
-        x_pos = 0.1;
+        x_pos = 2*delta_k + k;
     if label[0] == 'c':
-        x_pos = 0.2;
+        x_pos = delta_k + k;
     if label[0] == 'd':
-        x_pos = 0.3;
+        x_pos = k;
     if label[0] == 'e':
-        x_pos = 0.4;
+        x_pos = -k;
     if label[0] == 'f':
-        x_pos = 0.5;
+        x_pos = -delta_k - k;
     if label[0] == 'g':
-        x_pos = 0.6;
+        x_pos = -2*delta_k - k;
     if label[0] == 'h':
-        x_pos = 0.7;
+        x_pos = -3*delta_k - k;
 
     if label[1] == '1':
-        y_pos = 0;
+        y_pos = -3*delta_k - k;
     if label[1] == '2':
-        y_pos = 0.1;
+        y_pos = -2*delta_k - k;
     if label[1] == '3':
-        y_pos = 0.2;
+        y_pos = -delta_k - k;
     if label[1] == '4':
-        y_pos = 0.3;
+        y_pos = -k;
     if label[1] == '5':
-        y_pos = 0.4;
+        y_pos = k;
     if label[1] == '6':
-        y_pos = 0.5;
+        y_pos = delta_k + k;
     if label[1] == '7':
-        y_pos = 0.6;
+        y_pos = 2*delta_k + k;
     if label[1] == '8':
-        y_pos = 0.7;
+        y_pos = 3*delta_k + k;
 
-    offset = [x_pos, y_pos]
+    offset = [y_pos, x_pos]
 
     return offset
 
-def quaternion_multiply(quaternion1, quaternion0):
-    w0, x0, y0, z0 = quaternion0
-    w1, x1, y1, z1 = quaternion1
-    return np.array([-x1 * x0 - y1 * y0 - z1 * z0 + w1 * w0,
-                     x1 * w0 + y1 * z0 - z1 * y0 + w1 * x0,
-                     -x1 * z0 + y1 * w0 + z1 * x0 + w1 * y0,
-                     x1 * y0 - y1 * x0 + z1 * w0 + w1 * z0], dtype=np.float64)
+
 
 # -----------------------------------------------------
 # MAIN!!!
@@ -254,7 +262,8 @@ def main():
             anonymous=True)
     baxter = BaxterMoveit('left_arm')   
     try:
-        move_to_square(baxter,'a1')
+        # move_to_square(baxter,'a1')
+        baxter.listener()
     except rospy.ROSInterruptException:
         pass
     baxter.robot_shutdown()
@@ -262,5 +271,5 @@ def main():
 
 if __name__=='__main__':
     main()
-    rospy.spin()
+    # rospy.spin()
 
